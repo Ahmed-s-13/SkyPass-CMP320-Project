@@ -1,0 +1,16 @@
+# Oracle username and password: stays on your own computer, never pushed.
+# Each teammate copies db.properties.example to db.properties and fills in their own account.
+db.properties
+
+# Build output and IDE files
+target/
+nbproject/private/
+*.class
+
+# macOS and Office clutter
+.DS_Store
+~$*
+
+# Local backups and course handouts (not our work)
+docs/backup/
+Project Description.pdf

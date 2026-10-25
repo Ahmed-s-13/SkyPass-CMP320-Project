@@ -1,0 +1,715 @@
+<title>SkyPass QA Checklist</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style id="qa-style">
+/* Layout: one reading column; a sticky bar holds progress + filters; sections list tests as expandable rows. */
+:root {
+  --bg: #f4f6f9; --surface: #ffffff; --sunk: #eef1f5; --line: #dfe3ea;
+  --ink: #101828; --ink-2: #475467; --ink-3: #667085;
+  --accent: #c9440f; --accent-soft: #fbe9e1;
+  --pass: #157f4a; --pass-soft: #e3f4ea; --fail: #c0262d; --fail-soft: #fde8e8;
+  --code-bg: #0e2440; --code-ink: #e6edf7;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1420; --surface: #141d2b; --sunk: #1b2636; --line: #283447;
+    --ink: #e8edf5; --ink-2: #b4bfd0; --ink-3: #8e9bb0;
+    --accent: #f2703a; --accent-soft: #3a2117;
+    --pass: #4cc38a; --pass-soft: #12301f; --fail: #ff7b7b; --fail-soft: #3a1618;
+    --code-bg: #08111d; --code-ink: #dbe6f5; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1420; --surface: #141d2b; --sunk: #1b2636; --line: #283447;
+  --ink: #e8edf5; --ink-2: #b4bfd0; --ink-3: #8e9bb0;
+  --accent: #f2703a; --accent-soft: #3a2117;
+  --pass: #4cc38a; --pass-soft: #12301f; --fail: #ff7b7b; --fail-soft: #3a1618;
+  --code-bg: #08111d; --code-ink: #dbe6f5; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--surface); }
+.wrap { max-width: 920px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { padding-block: 32px 20px; display: grid; gap: 10px; }
+h1 { font-size: clamp(26px, 4vw, 34px); font-weight: 600; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.lede { color: var(--ink-2); margin: 0; max-width: 64ch; }
+.how { display: grid; gap: 6px; margin: 6px 0 0; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--ink-2); font-size: 14px; }
+.how b { color: var(--ink); font-weight: 600; }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--surface); border-bottom: 1px solid var(--line); }
+.bar .wrap { display: grid; gap: 10px; padding-block: 12px; }
+.progress-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px; }
+.progress-figure { font-weight: 600; font-variant-numeric: tabular-nums; }
+.progress-detail { color: var(--ink-3); font-size: 13px; font-variant-numeric: tabular-nums; }
+.save { margin-left: auto; font-size: 13px; color: var(--ink-3); display: flex; align-items: center; gap: 6px; }
+.save .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+.save[data-state="saved"] .dot { background: var(--pass); }
+.save[data-state="pending"] .dot, .save[data-state="saving"] .dot { background: var(--accent); }
+.save[data-state="local"] .dot { background: var(--ink-3); }
+.meter { display: flex; height: 6px; border-radius: 99px; overflow: hidden; background: var(--sunk); }
+.meter span { display: block; height: 100%; transition: width .4s ease; }
+.meter .m-pass { background: var(--pass); }
+.meter .m-fail { background: var(--fail); }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; background: var(--sunk); border-radius: 8px; padding: 2px; }
+.seg button { font: inherit; font-size: 13px; border: 0; background: transparent; color: var(--ink-2); padding: 5px 10px; border-radius: 6px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(16,24,40,.12); }
+.find { flex: 1 1 180px; min-width: 0; font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+
+main { padding-block: 8px 64px; display: grid; gap: 28px; }
+section.group { display: grid; gap: 8px; }
+.group-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding-top: 12px; }
+h2 { font-size: 19px; font-weight: 600; margin: 0; text-wrap: balance; }
+.group-count { color: var(--ink-3); font-size: 13px; font-variant-numeric: tabular-nums; }
+.group-intro { color: var(--ink-2); font-size: 14px; margin: 0 0 4px; max-width: 70ch; }
+
+.test { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.test[data-result="pass"] { border-color: color-mix(in srgb, var(--pass) 35%, var(--line)); }
+.test[data-result="fail"] { border-color: color-mix(in srgb, var(--fail) 55%, var(--line)); }
+.row { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: start; padding: 12px 14px; }
+.verdict { display: inline-flex; gap: 4px; padding-top: 1px; }
+.verdict button { font: inherit; font-size: 12px; font-weight: 500; min-width: 44px; padding: 3px 8px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--ink-3); cursor: pointer; }
+.verdict button:hover { color: var(--ink); border-color: var(--ink-3); }
+.verdict .b-pass[aria-pressed="true"] { background: var(--pass); border-color: var(--pass); color: #fff; }
+.verdict .b-fail[aria-pressed="true"] { background: var(--fail); border-color: var(--fail); color: #fff; }
+details { min-width: 0; }
+summary { cursor: pointer; list-style: none; display: grid; gap: 4px; }
+summary::-webkit-details-marker { display: none; }
+.title { font-weight: 500; }
+.test[data-result="pass"] .title { color: var(--ink-2); }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+.tag { padding: 1px 7px; border-radius: 99px; background: var(--sunk); color: var(--ink-2); }
+.tag.where-sql { background: var(--accent-soft); color: var(--accent); }
+.tag.ref { background: transparent; border: 1px solid var(--line); color: var(--ink-3); }
+.body { display: grid; gap: 10px; padding-top: 10px; font-size: 14px; }
+.body ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.expect { padding: 10px 12px; background: var(--pass-soft); border-radius: 8px; }
+.expect b { font-weight: 600; }
+.code { position: relative; }
+pre { margin: 0; padding: 12px 14px; background: var(--code-bg); color: var(--code-ink); border-radius: 8px; font-family: var(--mono); font-size: 12.5px; line-height: 1.55; overflow-x: auto; }
+.copy { position: absolute; top: 8px; right: 8px; font: inherit; font-size: 12px; padding: 2px 8px; border-radius: 6px; border: 1px solid rgba(255,255,255,.25); background: rgba(255,255,255,.08); color: var(--code-ink); cursor: pointer; }
+.note { display: grid; gap: 4px; padding: 0 14px 12px; }
+.note label { font-size: 12px; color: var(--fail); font-weight: 500; }
+.note input { font: inherit; font-size: 14px; padding: 6px 10px; border: 1px solid color-mix(in srgb, var(--fail) 45%, var(--line)); border-radius: 8px; background: var(--surface); color: var(--ink); }
+code.inline { font-family: var(--mono); font-size: 0.92em; background: var(--sunk); padding: 0 4px; border-radius: 4px; }
+.empty { color: var(--ink-3); padding: 24px 0; }
+footer.end { padding-block: 0 48px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; color: var(--ink-3); font-size: 13px; }
+.danger { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--fail) 45%, var(--line)); background: var(--surface); color: var(--fail); cursor: pointer; }
+button:focus-visible, summary:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (max-width: 560px) {
+  .row { grid-template-columns: minmax(0, 1fr); }
+  .save { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .meter span { transition: none; } }
+</style>
+<div id="app"></div>
+<script type="application/json" id="qa-state">{"r":{},"n":{}}</script>
+<script id="qa-js">
+(function () {
+"use strict";
+const RESET = ':root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,sans-serif}img{max-width:100%}[hidden]{display:none!important}';
+const FONTS = 'https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap';
+const LOCAL_KEY = 'skypass-qa-local';
+const UI_KEY = 'skypass-qa-ui';
+
+// ---------------------------------------------------------------------------
+// The tests. where: "App" (the NetBeans GUI) or "SQL" (SQL Developer).
+// ---------------------------------------------------------------------------
+const GROUPS = [
+{ id: 'setup', title: 'Before you start', intro: 'Make sure the database and the app are in the state the rest of this list assumes: scripts 01 to 06 run once on a fresh schema.', tests: [
+  { id: 'setup-run', where: 'SQL', refs: ['Stage 2'], title: 'All six scripts run without unexpected errors',
+    steps: ['Open <code class="inline">run_all.sql</code> in SQL Developer and press Run Script (F5).', 'Scroll the Script Output from top to bottom.'],
+    expect: 'No ORA- errors. The check queries at the end of 01, 02 and 03 print the 13 tables with their constraint counts, the 6 triggers as ENABLED and the row counts. Note that 04 can only run once on fresh data.' },
+  { id: 'setup-counts', where: 'SQL', refs: ['Stage 2'], title: 'Row counts match the scripts (after the DML demo)',
+    sql: `SELECT 'CUSTOMER' AS tbl, COUNT(*) AS cnt FROM CUSTOMER
+UNION ALL SELECT 'CUSTOMER_PHONE', COUNT(*) FROM CUSTOMER_PHONE
+UNION ALL SELECT 'TRAVELER', COUNT(*) FROM TRAVELER
+UNION ALL SELECT 'AIRLINE', COUNT(*) FROM AIRLINE
+UNION ALL SELECT 'AIRPORT', COUNT(*) FROM AIRPORT
+UNION ALL SELECT 'SERVES', COUNT(*) FROM SERVES
+UNION ALL SELECT 'AIRCRAFT', COUNT(*) FROM AIRCRAFT
+UNION ALL SELECT 'FLIGHT', COUNT(*) FROM FLIGHT
+UNION ALL SELECT 'FLIGHT_AMENITY', COUNT(*) FROM FLIGHT_AMENITY
+UNION ALL SELECT 'BOOKING', COUNT(*) FROM BOOKING
+UNION ALL SELECT 'PAYMENT', COUNT(*) FROM PAYMENT
+UNION ALL SELECT 'TICKET', COUNT(*) FROM TICKET
+UNION ALL SELECT 'REVIEW', COUNT(*) FROM REVIEW;`,
+    expect: 'CUSTOMER 13, CUSTOMER_PHONE 16, TRAVELER 21, AIRLINE 10, AIRPORT 12, SERVES 36, AIRCRAFT 12, FLIGHT 20, FLIGHT_AMENITY 54, BOOKING 12, PAYMENT 12, TICKET 26, REVIEW 10.' },
+  { id: 'setup-objects', where: 'SQL', refs: ['5.3', 'Stage 2'], title: 'Triggers, views and sequences are all valid',
+    sql: `SELECT object_type, object_name, status
+FROM user_objects
+WHERE object_type IN ('TRIGGER', 'VIEW', 'SEQUENCE')
+ORDER BY object_type, object_name;`,
+    expect: '5 sequences, 6 triggers (TRG_CUSTOMER_DOB, TRG_PAYMENT_AMOUNT, TRG_REVIEW_FLOWN, TRG_TICKET_CAPACITY, TRG_TICKET_TRAVELER_OWNER, TRG_TRAVELER_DOB) and 2 views (V_AIRLINE_STATS, V_BOOKING_SUMMARY), every one VALID.' },
+  { id: 'setup-launch', where: 'App', refs: ['GUI'], title: 'The app starts and connects',
+    steps: ['In NetBeans, right-click the SkyPass project and choose Run.'],
+    expect: 'The splash screen shows a plane flying a dashed arc with "Connecting to Oracle…". The main window then opens on Overview, and the sidebar footer shows a green dot with "Oracle · your username".' },
+  { id: 'setup-badlogin', where: 'App', refs: ['GUI', 'Validation'], title: 'A wrong password is explained, not a crash',
+    steps: ['In Db.java, change DBPASS to something wrong and run the app.', 'Afterwards, put the real password back.'],
+    expect: 'The splash screen shows "Oracle rejected the username or password. Check DBUSER and DBPASS in Db.java." with Retry and Quit buttons.' }
+]},
+{ id: 'customers', title: 'Customers and travelers', intro: 'BR1 and BR2: the Customer entity with its composite name and address, multi-valued phones and derived age, and the weak entity Traveler.', tests: [
+  { id: 'cust-list', where: 'App', refs: ['BR1', 'Table 1'], title: 'Customer list shows every customer',
+    steps: ['Open Customers.'],
+    expect: '13 rows with ID, Name, Email, City and Bookings. The summary under the title reads "13 customers".' },
+  { id: 'cust-detail', where: 'App', refs: ['BR1', 'Composite', 'Multi-valued', 'Derived'], title: 'Composite, multi-valued and derived attributes display correctly',
+    steps: ['Click Omar Haddad.'],
+    expect: 'First and last name are separate fields (composite Name), and so are street, city and country (composite Address). Phones shows both numbers (multi-valued Phone). The subheading reads "Customer #1 · age 36 · 2 bookings" (Age is derived from the date of birth).' },
+  { id: 'cust-search', where: 'App', refs: ['GUI search'], title: 'Search filters customers',
+    steps: ['Type "abu dhabi" in the search box.', 'Then type "gmail".', 'Clear the box with its × button.'],
+    expect: '"abu dhabi" shows 3 customers. "gmail" shows only Gmail addresses. Clearing it brings all 13 back.' },
+  { id: 'cust-register', where: 'App', refs: ['BR1', 'BR2', 'Insert'], title: 'Registering a customer also creates their Self traveler',
+    steps: ['Click New customer.', 'Fill in every field with valid data, two phone numbers separated by a comma and a passport such as T1234567.', 'Click Register customer.'],
+    expect: 'A toast reads "… is registered as customer #10xx." The new row is selected, and "Travelers on this account" lists the person as Self with that passport. Note the ID for later tests.' },
+  { id: 'cust-validate', where: 'App', refs: ['BR1', 'Validation'], title: 'Bad customer input is caught before Oracle',
+    steps: ['Click New customer.', 'Leave First name empty, type "omar@" as the email, "2030-01-01" as the date of birth and "ab" as the passport, and leave Phones empty.', 'Click Register customer.'],
+    expect: 'Each bad field is outlined in red with its reason underneath ("Enter a first name.", "Enter an email like name@example.com.", "Can\'t be in the future.", "6–15 letters or digits.", "Add at least one phone number."). Nothing is saved.' },
+  { id: 'cust-baddate', where: 'App', refs: ['Validation'], title: 'Impossible dates are rejected',
+    steps: ['Enter a date of birth of 2001-02-30 and click Register customer.'],
+    expect: '"Like 2001-04-27." appears under the field. The date is not quietly turned into 28 Feb.' },
+  { id: 'cust-dupemail', where: 'App', refs: ['BR1', 'Table 6 alternate key'], title: 'Email must be unique',
+    steps: ['Register a new customer with the email omar.haddad@gmail.com (all other fields valid).'],
+    expect: 'An error toast reads "That email is already registered to another customer." No row is added.' },
+  { id: 'cust-update', where: 'App', refs: ['Update', 'Multi-valued'], title: 'Editing a customer replaces their phones',
+    steps: ['Select your test customer.', 'Change the city and replace the phones with a single number.', 'Click Save changes, then click the row again.'],
+    expect: 'A toast reads "Saved changes to …". The table shows the new city and the form shows only the new phone number.' },
+  { id: 'cust-companion', where: 'App', refs: ['BR2', 'Weak entity'], title: 'A companion can be saved to the account',
+    steps: ['With your test customer selected, click Add companion.', 'Enter a name, a date of birth, the relationship Spouse and a passport, then click Add companion.'],
+    expect: 'The dialog closes, a toast confirms the add, and the companion appears in the list as Spouse.' },
+  { id: 'cust-companion-dup', where: 'App', refs: ['BR2', 'Table 6 (CustomerID, PassportNo)'], title: 'Two travelers on one account cannot share a passport',
+    steps: ['Add another companion using the same passport number.'],
+    expect: '"This customer already has a traveler with that passport number."' },
+  { id: 'cust-remove-self', where: 'App', refs: ['BR2'], title: 'The Self traveler cannot be removed',
+    steps: ['Select the Self row in the travelers list and click Remove.'],
+    expect: '"The customer\'s own traveler profile can\'t be removed."' },
+  { id: 'cust-remove-companion', where: 'App', refs: ['BR2', 'Delete'], title: 'A companion can be removed',
+    steps: ['Select the companion and click Remove.'],
+    expect: 'A toast confirms the removal and the companion disappears from the list.' },
+  { id: 'cust-delete-restrict', where: 'App', refs: ['BR3', 'Table 5 RESTRICT'], title: 'A customer with bookings cannot be deleted',
+    steps: ['Select Omar Haddad and click Delete.'],
+    expect: '"Omar Haddad has 2 bookings, so they can\'t be deleted. Delete the bookings first."' },
+  { id: 'cust-delete-cascade', where: 'Both', refs: ['Table 5 CASCADE', 'Weak entity'], title: 'Deleting a customer removes their phones and travelers',
+    steps: ['In the app, select your test customer (no bookings), click Delete and confirm.', 'In SQL Developer, run the check below with your test customer\'s ID.'],
+    sql: `-- replace 1003 with your test customer's ID
+SELECT (SELECT COUNT(*) FROM CUSTOMER_PHONE WHERE CustomerID = 1003) AS phones,
+       (SELECT COUNT(*) FROM TRAVELER       WHERE CustomerID = 1003) AS travelers
+FROM DUAL;`,
+    expect: 'The customer disappears from the list, and both counts are 0 (ON DELETE CASCADE).' }
+]},
+{ id: 'flights', title: 'Flights, aircraft and airports', intro: 'BR7 to BR10 and BR13: Owns, Operates, AssignedTo, DepartsFrom, ArrivesAt and Serves, plus Flight\'s multi-valued amenities and derived duration.', tests: [
+  { id: 'fl-list', where: 'App', refs: ['Table 1', 'Display'], title: 'Flight list shows the schedule with statuses',
+    steps: ['Open Flights.'],
+    expect: '20 flights, latest departure first. FZ445 shows an amber Delayed dot at 5 Nov 26, 22:55 (the +45 minutes from 04_dml.sql). Arrived flights have a grey dot. Sold shows tickets against capacity, e.g. 3 / 354.' },
+  { id: 'fl-detail', where: 'App', refs: ['BR13', 'Derived', 'Multi-valued'], title: 'Flight details include derived duration and amenities',
+    steps: ['Click EK203 (DXB → JFK).'],
+    expect: 'Airline Emirates, aircraft A6-EGO, From DXB, To JFK, base fare 4200, Duration 14h 10m. Wi-Fi, Meals, Power outlets and Entertainment are ticked.' },
+  { id: 'fl-owns', where: 'App', refs: ['BR7', 'BR8'], title: 'Aircraft are limited to the chosen airline\'s fleet',
+    steps: ['On any flight, change Airline to Air Arabia and open the Aircraft list.', 'Click Clear afterwards to discard the change.'],
+    expect: 'Only A6-ANA (A320) and A6-AOA (A321neo) are offered.' },
+  { id: 'fl-add', where: 'App', refs: ['Insert', 'BR13'], title: 'A new flight can be added with amenities',
+    steps: ['Click New flight.', 'Enter EK777, Emirates, A6-EUA, DXB → CDG, a future departure and arrival such as 2026-12-30 09:00 and 2026-12-30 16:20, base fare 2000, and tick Wi-Fi and Meals.', 'Click Add flight.'],
+    expect: 'Duration reads 7h 20m as you type. After saving, the toast reads "Flight EK777 was added to the schedule." and the new row is selected.' },
+  { id: 'fl-validate', where: 'App', refs: ['BR9', 'Validation'], title: 'Bad flight input is caught',
+    steps: ['On a new flight, set From and To to the same airport, put the arrival before the departure, type "abc" as the fare and "123" as the flight number, then click Add flight.'],
+    expect: '"Same as the origin.", "Must be after departure.", "A positive amount." and "Like EK001." appear under the matching fields.' },
+  { id: 'fl-dup', where: 'App', refs: ['Table 6 (FlightNo, DepTime)'], title: 'The same flight number cannot depart twice at the same time',
+    steps: ['Add a flight EK001, Emirates, A6-EUA, DXB → LHR departing 2026-11-08 07:45 and arriving 2026-11-08 15:35.'],
+    expect: '"A flight with this number already departs at that time."' },
+  { id: 'fl-update', where: 'App', refs: ['Update'], title: 'Editing a flight saves status and amenities',
+    steps: ['Select EK777, set Status to Delayed and untick Meals.', 'Click Save changes, then click the row again.'],
+    expect: 'The row shows an amber Delayed dot, and Meals stays unticked when you reselect it.' },
+  { id: 'fl-delete-restrict', where: 'App', refs: ['Table 5 RESTRICT'], title: 'A flight with tickets cannot be deleted',
+    steps: ['Select EK001 on 8 Nov 26 and click Delete, then OK.'],
+    expect: '"This flight has tickets booked on it, so it can\'t be deleted. Change its status to Cancelled instead."' },
+  { id: 'fl-delete', where: 'Both', refs: ['Delete', 'Table 5 CASCADE'], title: 'Deleting a flight removes its amenities',
+    steps: ['Select EK777, click Delete and confirm.', 'Then run the check below in SQL Developer.'],
+    sql: `SELECT COUNT(*) AS leftover_amenities
+FROM FLIGHT_AMENITY fa
+WHERE NOT EXISTS (SELECT 1 FROM FLIGHT f WHERE f.FlightID = fa.FlightID);`,
+    expect: 'EK777 disappears from the list and the query returns 0.' },
+  { id: 'fl-search', where: 'App', refs: ['GUI search'], title: 'Search filters flights',
+    steps: ['Search "IST", then "Emirates".'],
+    expect: '"IST" shows only flights to or from Istanbul. "Emirates" shows only Emirates flights, even though the Airline column isn\'t in the table.' },
+  { id: 'fl-serves', where: 'SQL', refs: ['BR10', 'M:N Serves'], title: 'Airlines serve many airports (M:N)',
+    sql: `SELECT a.Name, COUNT(*) AS airports,
+       LISTAGG(s.AirportCode, ', ') WITHIN GROUP (ORDER BY s.AirportCode) AS serves
+FROM SERVES s
+JOIN AIRLINE a ON a.AirlineID = s.AirlineID
+GROUP BY a.Name
+ORDER BY airports DESC;`,
+    expect: '10 airlines. Emirates serves 8 airports (BOM, CAI, CDG, DXB, FRA, JFK, LHR, SIN), and several airports such as DXB appear under many airlines.' }
+]},
+{ id: 'bookings', title: 'Bookings, tickets and payments', intro: 'BR3 to BR6 and BR12: the ternary Ticket relationship, the 1:1 PaidBy relationship and the derived TotalPrice.', tests: [
+  { id: 'bk-list', where: 'App', refs: ['BR3', 'Derived TotalPrice'], title: 'Booking list shows status and derived totals',
+    steps: ['Open Bookings.'],
+    expect: '12 bookings, newest first, each with a status dot and a total. The summary reads "12 bookings · AED 96,070.00 in active bookings".' },
+  { id: 'bk-detail', where: 'App', refs: ['Ternary Ticket', 'BR6 1:1'], title: 'A booking shows its tickets and its single payment',
+    steps: ['Click SP0102.'],
+    expect: '"Tickets on SP0102" lists 4 tickets: Layla Mansour and Nadia Mansour on EY011 and EY012, seats 2A, 2D, 3A and 3D, Business, AED 4,950.00 each. The form reads "Total AED 19,800.00 for 4 tickets. Paid AED 19,800.00 by card."' },
+  { id: 'bk-fare', where: 'App', refs: ['BR12'], title: 'Fares follow the cabin multipliers',
+    steps: ['Click New booking and choose any upcoming flight.', 'Switch Cabin through Economy, Premium economy, Business and First, watching the fare line.'],
+    expect: 'The fare is the base fare × 1, × 1.5, × 2.5 and × 4. For example, for a 2,150 base fare: 2,150.00, 3,225.00, 5,375.00 and 8,600.00.' },
+  { id: 'bk-owner', where: 'App', refs: ['BR5'], title: 'Only the customer\'s own travelers can be booked',
+    steps: ['Choose Omar Haddad as the customer and open Traveler.', 'Add one ticket, then change the customer.'],
+    expect: 'Traveler lists only Omar Haddad (Self) and Hana Haddad (Spouse). Changing the customer clears the ticket lines with "Tickets were cleared: travelers must belong to the booking\'s customer."' },
+  { id: 'bk-empty', where: 'App', refs: ['BR4'], title: 'A booking needs at least one ticket',
+    steps: ['Choose a customer but add no tickets, then click Confirm and pay.'],
+    expect: '"Add at least one ticket." appears and nothing is saved.' },
+  { id: 'bk-dupline', where: 'App', refs: ['BR5'], title: 'The same traveler or seat cannot be added twice',
+    steps: ['Add Omar on a flight in seat 20A.', 'Try to add Omar to the same flight again, then Hana to the same flight in seat 20A.'],
+    expect: '"Already on this flight in this booking." under Traveler, then "Already in this booking." under Seat.' },
+  { id: 'bk-new', where: 'App', refs: ['BR3', 'BR4', 'BR6', 'BR12', 'Insert'], title: 'A new booking saves tickets and payment together',
+    steps: ['New booking → customer Omar Haddad.', 'Add Omar (Self) on an upcoming flight, Business, seat 20A. Add Hana on the same flight, Economy, seat 20B.', 'Pick Card and click Confirm and pay.'],
+    expect: 'A boarding pass rises in showing SP10xx, "Omar Haddad · 2 travelers", both ticket lines and a total equal to the two fares. After Done, the booking is at the top of the list with status Confirmed.' },
+  { id: 'bk-seat-taken', where: 'App', refs: ['BR5', 'Transaction'], title: 'A taken seat rolls the whole booking back',
+    steps: ['New booking for any customer: flight EK001 on 8 Nov, seat 33C (already sold to Youssef Amin). Confirm and pay.'],
+    expect: '"That seat is already taken on this flight. Pick another seat." No new booking appears in the list.' },
+  { id: 'bk-status', where: 'App', refs: ['BR3', 'Update'], title: 'Cancelling a booking updates status and revenue',
+    steps: ['Select the booking you created, set Status to Cancelled and the payment method to Wallet, then click Save changes.', 'Open Overview.'],
+    expect: 'The row shows a red Cancelled dot. Revenue on the Overview drops by that booking\'s total.' },
+  { id: 'bk-delete', where: 'App', refs: ['Delete', 'Table 5'], title: 'Deleting a booking removes its tickets and payment',
+    steps: ['Select your cancelled booking, click Delete booking and confirm.'],
+    expect: 'A toast reads "Booking SP10xx was deleted." The booking and its tickets are gone.' },
+  { id: 'bk-search', where: 'App', refs: ['GUI search'], title: 'Search filters bookings',
+    steps: ['Search "SP0107", then "Khalil".'],
+    expect: 'Both show only SP0107 (Ahmed Khalil, AED 31,500.00).' }
+]},
+{ id: 'reviews', title: 'Reviews', intro: 'BR11: the Reviews M:N relationship with rating, optional comment and date, and the derived AvgRating.', tests: [
+  { id: 'rv-list', where: 'App', refs: ['BR11', 'M:N Reviews'], title: 'Review list shows ratings as stars',
+    steps: ['Open Reviews.'],
+    expect: '10 reviews with 1–5 stars, newest first. The summary reads "10 reviews · 4.1 out of 5 on average". Reviews without a comment show "–".' },
+  { id: 'rv-detail', where: 'App', refs: ['BR11', 'Derived AvgRating'], title: 'Editing a review locks its key and shows the airline average',
+    steps: ['Click James Whitfield on British Airways.'],
+    expect: 'Customer and Airline are greyed out (they form the key). The line under Airline reads "Rated 3.00 on average from 1 review."' },
+  { id: 'rv-new', where: 'App', refs: ['BR11', 'Insert'], title: 'A customer can review an airline they flew',
+    steps: ['New review → Mariam Youssef, flydubai, 4 stars, any comment → Post review.'],
+    expect: 'A toast reads "Review posted." and the review appears in the list.' },
+  { id: 'rv-notflown', where: 'App', refs: ['BR11 trigger'], title: 'A customer cannot review an airline they never flew',
+    steps: ['New review → Karim Nassar, Emirates, 5 stars → Post review.'],
+    expect: '"A customer can only review an airline they have flown with."' },
+  { id: 'rv-twice', where: 'App', refs: ['BR11', 'Table 6 PK'], title: 'One review per customer per airline',
+    steps: ['New review → Omar Haddad, Emirates, 3 stars → Post review.'],
+    expect: '"This customer has already reviewed that airline. Edit the existing review instead."' },
+  { id: 'rv-validate', where: 'App', refs: ['Validation'], title: 'Rating and date are validated',
+    steps: ['Post a new review with no stars and a date in the future.'],
+    expect: '"Pick 1 to 5 stars." and "Can\'t be in the future."' },
+  { id: 'rv-edit', where: 'App', refs: ['Update', 'Optional comment'], title: 'A rating can change and the comment can be cleared',
+    steps: ['Select Mariam\'s review, give it 2 stars and delete the comment, then click Save changes.'],
+    expect: 'The list shows 2 stars and "–" for the comment (stored as NULL).' },
+  { id: 'rv-delete', where: 'App', refs: ['Delete'], title: 'A review can be deleted',
+    steps: ['Select Mariam\'s review, click Delete and confirm.'],
+    expect: 'A toast reads "Review deleted." and the list is back to 10.' },
+  { id: 'rv-keys', where: 'App', refs: ['Accessibility'], title: 'Stars work from the keyboard',
+    steps: ['Tab to the stars and press the left and right arrow keys.'],
+    expect: 'The rating moves one star at a time and the picked star pops briefly.' }
+]},
+{ id: 'sql-rules', title: 'Business rules in SQL Developer', intro: 'Some rules can\'t be reached from the app, so test them directly. Run each block with Run Script (F5). The error each statement should raise is in its comment, and every block ends with ROLLBACK, so your data stays unchanged.', tests: [
+  { id: 'sql-dob', where: 'SQL', refs: ['BR1', 'BR2', '5.3 trigger'], title: 'Dates of birth cannot be in the future (trigger)',
+    sql: `INSERT INTO CUSTOMER VALUES (900, 'Future', 'Person', 'future@test.com',
+       SYSDATE + 30, 'Street 1', 'Dubai', 'UAE');          -- ORA-20001
+UPDATE TRAVELER SET DateOfBirth = SYSDATE + 1
+WHERE CustomerID = 1 AND TravelerNo = 2;                  -- ORA-20001
+ROLLBACK;`,
+    expect: 'Both statements fail with ORA-20001: Date of birth cannot be in the future.' },
+  { id: 'sql-orphan', where: 'SQL', refs: ['BR2', 'Weak entity'], title: 'A traveler cannot exist without its customer',
+    sql: `INSERT INTO TRAVELER VALUES (999, 1, 'Nobody', DATE '1990-01-01', 'Self', 'NB123456');
+-- ORA-02291 (FK_TRAVELER_CUSTOMER): parent key not found
+ROLLBACK;`,
+    expect: 'ORA-02291 integrity constraint (…FK_TRAVELER_CUSTOMER) violated - parent key not found.' },
+  { id: 'sql-booking', where: 'SQL', refs: ['BR3', 'Table 7 DEFAULT / CHECK'], title: 'Booking status is checked and the defaults apply',
+    sql: `UPDATE BOOKING SET Status = 'LOST' WHERE BookingRef = 'SP0101';   -- ORA-02290
+INSERT INTO BOOKING (BookingRef, CustomerID) VALUES ('SPTEST', 12);
+SELECT BookingRef, BookingDate, Status FROM BOOKING WHERE BookingRef = 'SPTEST';
+ROLLBACK;`,
+    expect: 'The UPDATE fails on CK_BOOKING_STATUS. The insert works, and SPTEST shows today\'s date and status PENDING.' },
+  { id: 'sql-owner', where: 'SQL', refs: ['BR5', '5.3 trigger'], title: 'Tickets only for the booking customer\'s travelers (trigger)',
+    sql: `-- SP0101 belongs to customer 1; traveler (2, 1) is Layla Mansour
+INSERT INTO TICKET VALUES ('SP0101', 2, 1, 16, '50B', 'ECONOMY', 2150);  -- ORA-20002
+ROLLBACK;`,
+    expect: 'ORA-20002: A ticket\'s traveler must belong to the customer who made the booking.' },
+  { id: 'sql-ticket', where: 'SQL', refs: ['BR5', 'BR12', 'Table 6', 'Table 7'], title: 'Ticket keys and checks hold',
+    sql: `-- Omar is already on flight 1 in SP0101
+INSERT INTO TICKET VALUES ('SP0101', 1, 1, 1,  '50A', 'ECONOMY', 2150);  -- ORA-00001
+-- seat 33C on flight 16 is already sold (SP0113)
+INSERT INTO TICKET VALUES ('SP0101', 1, 1, 16, '33C', 'ECONOMY', 2150);  -- ORA-00001 UQ_TICKET_SEAT
+INSERT INTO TICKET VALUES ('SP0101', 1, 1, 16, '51A', 'LUXURY',  2150);  -- ORA-02290 CK_TICKET_CABIN
+INSERT INTO TICKET VALUES ('SP0101', 1, 1, 16, '0Z',  'ECONOMY', 2150);  -- ORA-02290 CK_TICKET_SEAT
+INSERT INTO TICKET VALUES ('SP0101', 1, 1, 16, '51A', 'ECONOMY', -5);    -- ORA-02290 CK_TICKET_FARE
+ROLLBACK;`,
+    expect: 'All five inserts fail, with the errors in the comments.' },
+  { id: 'sql-capacity', where: 'SQL', refs: ['BR8', '5.3 trigger'], title: 'A flight cannot sell more tickets than its aircraft has seats (trigger)',
+    sql: `INSERT INTO AIRCRAFT VALUES ('A6-TST', 3, 'Test jet', 1);   -- a 1-seat aircraft
+INSERT INTO FLIGHT VALUES (906, 'G9906', 3, 'A6-TST', 'SHJ', 'CAI',
+       SYSDATE + 10, SYSDATE + 10.2, 500, 'SCHEDULED');
+INSERT INTO BOOKING (BookingRef, CustomerID) VALUES ('SPCAP', 1);
+INSERT INTO TICKET VALUES ('SPCAP', 1, 1, 906, '1A', 'ECONOMY', 500);  -- works (1 of 1)
+INSERT INTO TICKET VALUES ('SPCAP', 1, 2, 906, '1B', 'ECONOMY', 500);  -- ORA-20003
+ROLLBACK;`,
+    expect: 'The first ticket is accepted. The second fails with ORA-20003: Flight G9906 is full: every seat on this aircraft is taken.' },
+  { id: 'sql-assigned', where: 'SQL', refs: ['BR8', 'ALTER TABLE composite FK'], title: 'A flight\'s aircraft must belong to its airline',
+    sql: `-- G-XWBA belongs to British Airways, not Emirates
+INSERT INTO FLIGHT (FlightID, FlightNo, AirlineID, TailNo, OriginCode, DestCode, DepTime, ArrTime, BaseFare)
+VALUES (905, 'EK905', 1, 'G-XWBA', 'DXB', 'LHR', SYSDATE + 5, SYSDATE + 5.3, 2000);  -- ORA-02291
+ROLLBACK;`,
+    expect: 'ORA-02291 on FK_FLIGHT_AIRCRAFT, the composite foreign key added with ALTER TABLE in 01.' },
+  { id: 'sql-flight', where: 'SQL', refs: ['BR9', 'Table 6', 'Table 7'], title: 'Flight route, times, fare, uniqueness and status default',
+    sql: `INSERT INTO FLIGHT (FlightID, FlightNo, AirlineID, TailNo, OriginCode, DestCode, DepTime, ArrTime, BaseFare)
+VALUES (900, 'EK900', 1, 'A6-EUA', 'DXB', 'DXB', SYSDATE + 5, SYSDATE + 5.3, 2000);  -- CK_FLIGHT_ROUTE
+INSERT INTO FLIGHT (FlightID, FlightNo, AirlineID, TailNo, OriginCode, DestCode, DepTime, ArrTime, BaseFare)
+VALUES (901, 'EK901', 1, 'A6-EUA', 'DXB', 'LHR', SYSDATE + 5, SYSDATE + 4, 2000);    -- CK_FLIGHT_TIMES
+INSERT INTO FLIGHT (FlightID, FlightNo, AirlineID, TailNo, OriginCode, DestCode, DepTime, ArrTime, BaseFare)
+VALUES (902, 'EK001', 1, 'A6-EUA', 'DXB', 'LHR',
+        TO_DATE('2026-11-08 07:45', 'YYYY-MM-DD HH24:MI'),
+        TO_DATE('2026-11-08 15:35', 'YYYY-MM-DD HH24:MI'), 2150);                      -- UQ_FLIGHT_NO_DEP
+INSERT INTO FLIGHT (FlightID, FlightNo, AirlineID, TailNo, OriginCode, DestCode, DepTime, ArrTime, BaseFare)
+VALUES (903, 'EK903', 1, 'A6-EUA', 'DXB', 'LHR', SYSDATE + 5, SYSDATE + 5.3, 0);       -- CK_FLIGHT_FARE
+INSERT INTO FLIGHT (FlightID, FlightNo, AirlineID, TailNo, OriginCode, DestCode, DepTime, ArrTime, BaseFare)
+VALUES (904, 'EK904', 1, 'A6-EUA', 'DXB', 'LHR', SYSDATE + 5, SYSDATE + 5.3, 2000);    -- works
+SELECT Status FROM FLIGHT WHERE FlightID = 904;
+ROLLBACK;`,
+    expect: 'The first four fail with the constraint named in each comment. The last one works and shows Status SCHEDULED (the DEFAULT).' },
+  { id: 'sql-payment', where: 'SQL', refs: ['BR6', '1:1 PaidBy', '5.3 trigger'], title: 'One payment per booking, equal to the fares',
+    sql: `UPDATE PAYMENT SET Amount = 100 WHERE BookingRef = 'SP0101';     -- ORA-20005
+INSERT INTO PAYMENT (PaymentID, BookingRef, Method, Amount)
+VALUES (900, 'SP0101', 'CARD', 8600);                            -- ORA-00001 UQ_PAYMENT_BOOKING
+UPDATE PAYMENT SET Method = 'CASH' WHERE BookingRef = 'SP0101';  -- ORA-02290 CK_PAYMENT_METHOD
+ROLLBACK;`,
+    expect: 'ORA-20005 "Payment amount 100.00 must equal the booking total 8,600.00.", then the 1:1 unique violation, then the method check.' },
+  { id: 'sql-review', where: 'SQL', refs: ['BR11', 'Table 7'], title: 'Review rules, rating range and defaults',
+    sql: `INSERT INTO REVIEW (CustomerID, AirlineID, Rating) VALUES (12, 1, 4);  -- ORA-20004 (never flew)
+INSERT INTO REVIEW (CustomerID, AirlineID, Rating) VALUES (1, 1, 3);   -- ORA-00001 PK_REVIEW
+UPDATE REVIEW SET Rating = 6 WHERE CustomerID = 1 AND AirlineID = 1;    -- ORA-02290 CK_REVIEW_RATING
+INSERT INTO REVIEW (CustomerID, AirlineID, Rating) VALUES (8, 4, 4);   -- works
+SELECT Rating, ReviewComment, ReviewDate FROM REVIEW WHERE CustomerID = 8;
+ROLLBACK;`,
+    expect: 'The first three fail as commented. The last insert works with ReviewComment NULL (optional) and ReviewDate today (DEFAULT SYSDATE).' },
+  { id: 'sql-codes', where: 'SQL', refs: ['Table 7'], title: 'Codes, capacity, email, relationship and passport checks',
+    sql: `INSERT INTO AIRLINE VALUES (900, 'E', 'Bad Code Air');            -- ORA-02290 CK_AIRLINE_IATA
+INSERT INTO AIRLINE VALUES (901, 'EK', 'Copy Emirates');         -- ORA-00001 UQ_AIRLINE_IATA
+INSERT INTO AIRLINE (AirlineID, IATACode) VALUES (902, 'ZZ');      -- ORA-01400 Name NOT NULL
+INSERT INTO AIRPORT VALUES ('dx1', 'Bad', 'X', 'Y');              -- ORA-02290 CK_AIRPORT_CODE
+INSERT INTO AIRCRAFT VALUES ('A6-ZZZ', 1, 'Paper plane', 0);     -- ORA-02290 CK_AIRCRAFT_CAPACITY
+UPDATE CUSTOMER SET Email = 'omar.gmail.com' WHERE CustomerID = 1;                     -- CK_CUSTOMER_EMAIL
+UPDATE TRAVELER SET Relationship = 'Cousin' WHERE CustomerID = 1 AND TravelerNo = 2;   -- CK_TRAVELER_REL
+UPDATE TRAVELER SET PassportNo = 'ab-1' WHERE CustomerID = 1 AND TravelerNo = 2;       -- CK_TRAVELER_PASSPORT
+ROLLBACK;`,
+    expect: 'Every statement fails with the error in its comment.' }
+]},
+{ id: 'keys', title: 'Keys and referential actions', intro: 'Tables 5 and 6: every primary, alternate and foreign key, and what happens on delete.', tests: [
+  { id: 'key-list', where: 'SQL', refs: ['Table 6'], title: 'Primary and alternate keys exist as declared',
+    sql: `SELECT c.table_name, c.constraint_name, c.constraint_type,
+       LISTAGG(cc.column_name, ', ') WITHIN GROUP (ORDER BY cc.position) AS columns
+FROM user_constraints c
+JOIN user_cons_columns cc ON cc.constraint_name = c.constraint_name
+WHERE c.constraint_type IN ('P', 'U')
+GROUP BY c.table_name, c.constraint_name, c.constraint_type
+ORDER BY c.table_name, c.constraint_type;`,
+    expect: 'Compare with Table 6. Composite PKs on CUSTOMER_PHONE, TRAVELER, FLIGHT_AMENITY, REVIEW, SERVES and TICKET (4 columns). Unique keys: Email, (CustomerID, PassportNo), IATACode, (AirlineID, TailNo), (FlightNo, DepTime), Payment BookingRef, (FlightID, SeatNo) and (FlightID, CustomerID, TravelerNo).' },
+  { id: 'key-rules', where: 'SQL', refs: ['Table 5'], title: 'Foreign keys and their delete rules match Table 5',
+    sql: `SELECT table_name, constraint_name, delete_rule
+FROM user_constraints
+WHERE constraint_type = 'R'
+ORDER BY delete_rule, table_name;`,
+    expect: '17 foreign keys. CASCADE on FK_PHONE_CUSTOMER, FK_TRAVELER_CUSTOMER, FK_SERVES_AIRLINE, FK_SERVES_AIRPORT, FK_AMENITY_FLIGHT, FK_REVIEW_CUSTOMER and FK_TICKET_BOOKING. The other 10 show NO ACTION (Oracle\'s name for RESTRICT).' },
+  { id: 'key-restrict', where: 'SQL', refs: ['Table 5 RESTRICT'], title: 'RESTRICT blocks deletes of rows still in use',
+    sql: `DELETE FROM BOOKING  WHERE BookingRef = 'SP0101';   -- ORA-02292 (payment exists)
+DELETE FROM AIRLINE  WHERE IATACode = 'AF';         -- ORA-02292 (aircraft exist)
+DELETE FROM FLIGHT   WHERE FlightID = 1;            -- ORA-02292 (tickets exist)
+DELETE FROM CUSTOMER WHERE CustomerID = 1;          -- ORA-02292 (bookings / tickets exist)
+ROLLBACK;`,
+    expect: 'All four fail with ORA-02292 integrity constraint violated - child record found.' },
+  { id: 'key-cascade', where: 'SQL', refs: ['Table 5 CASCADE'], title: 'CASCADE removes dependent rows',
+    sql: `-- Booking -> tickets
+DELETE FROM PAYMENT WHERE BookingRef = 'SP0103';
+DELETE FROM BOOKING WHERE BookingRef = 'SP0103';
+SELECT COUNT(*) AS tickets_left FROM TICKET WHERE BookingRef = 'SP0103';   -- 0
+-- Airport -> serves
+INSERT INTO AIRPORT VALUES ('TST', 'Test Field', 'Testville', 'UAE');
+INSERT INTO SERVES VALUES (1, 'TST');
+DELETE FROM AIRPORT WHERE AirportCode = 'TST';
+SELECT COUNT(*) AS serves_left FROM SERVES WHERE AirportCode = 'TST';     -- 0
+ROLLBACK;`,
+    expect: 'Both counts are 0. ROLLBACK then puts SP0103 back.' }
+]},
+{ id: 'reports', title: 'Derived attributes, views and reports', intro: 'Section 5.4 and the multi-table reports the GUI must offer.', tests: [
+  { id: 'der-all', where: 'App', refs: ['5.4 derived'], title: 'All four derived attributes appear and are right',
+    steps: ['Age: Customers → Omar Haddad shows "age 36".', 'TotalPrice: Bookings → SP0107 shows 31,500.00 (3 × 10,500).', 'AvgRating: Reviews → select any Emirates review; the line under Airline reads 4.50 from 2 reviews.', 'Duration: Flights → EY101 shows 14h 10m.'],
+    expect: 'All four values match. None of them is stored in a table.' },
+  { id: 'view-booking', where: 'SQL', refs: ['View 1'], title: 'V_BOOKING_SUMMARY joins four tables and matches payments',
+    sql: `SELECT * FROM V_BOOKING_SUMMARY ORDER BY BookingRef;
+
+SELECT BookingRef, TotalPrice, AmountPaid
+FROM V_BOOKING_SUMMARY
+WHERE AmountPaid IS NULL OR AmountPaid <> TotalPrice;   -- expect no rows`,
+    expect: '12 rows with customer name, ticket count, TotalPrice and payment. The second query returns no rows.' },
+  { id: 'view-airline', where: 'SQL', refs: ['View 2', 'Derived AvgRating'], title: 'V_AIRLINE_STATS gives fleet, sales, revenue and rating',
+    sql: `SELECT IATACode, Name, FleetSize, Flights, TicketsSold, Revenue, AvgRating, ReviewCount
+FROM V_AIRLINE_STATS
+ORDER BY Revenue DESC;`,
+    expect: 'Emirates at the top with AED 42,250 and AvgRating 4.5. Air France has 0 tickets sold and no rating.' },
+  { id: 'ov-overview', where: 'App', refs: ['Multi-table report'], title: 'Overview shows the next departure and platform totals',
+    steps: ['Open Overview.'],
+    expect: 'The summary names the next departure (for example G9503 Sharjah to Istanbul) with seats sold. The navy panel shows that route with a plane looping along it. The departures board flips in up to 6 upcoming flights, with FZ445 in amber as Delayed. The totals count up to 13 customers, 20 flights, 12 active bookings and 96,070.00 revenue.' },
+  { id: 'ov-newbooking', where: 'App', refs: ['GUI'], title: 'New booking on the Overview goes to the booking form',
+    steps: ['Click New booking on the Overview.'],
+    expect: 'The sidebar pill slides to Bookings and the empty New booking form is shown.' },
+  { id: 'rep-bookings', where: 'App', refs: ['Multi-table report'], title: 'Report: booking summary',
+    steps: ['Open Reports and choose Bookings.'],
+    expect: 'The sentence reads "12 bookings worth AED 96,070.00. The largest is SP0107 (Ahmed Khalil) at AED 31,500.00." The table lists every booking, largest first.' },
+  { id: 'rep-airlines', where: 'App', refs: ['Multi-table report', 'Derived AvgRating'], title: 'Report: airline performance',
+    steps: ['Choose Airlines.'],
+    expect: '"Emirates earns the most: AED 42,250.00 from 8 tickets, rated 4.5 out of 5." Airlines without reviews show "–" as their rating.' },
+  { id: 'rep-load', where: 'App', refs: ['Multi-table report', 'BR8'], title: 'Report: flight load factor',
+    steps: ['Choose Flight load.'],
+    expect: 'Every flight with seats, sold and a load bar with its percentage, fullest first (e.g. BA107 3 of 331). The sentence says how many flights have no tickets yet.' }
+]},
+{ id: 'deliverables', title: 'SQL deliverables for the final report', intro: 'The brief asks for a screenshot or captured output plus a one-line purpose for every required query. These checks make sure you have them all.', tests: [
+  { id: 'del-ddl', where: 'SQL', refs: ['Req 4'], title: 'ALTER TABLE and DROP demos are captured',
+    steps: ['Run 01_schema.sql and screenshot section 10 (two ALTER TABLE statements) and section 11 (FLIGHT_IMPORT_TMP created, queried and dropped).'],
+    expect: '"Table FLIGHT altered.", "Table TRAVELER altered." and "Table FLIGHT_IMPORT_TMP dropped." in the Script Output.' },
+  { id: 'del-dml', where: 'SQL', refs: ['Req 6'], title: 'INSERT, UPDATE and DELETE demos are captured',
+    steps: ['On fresh data (run 01 to 03 first), run 04_dml.sql and screenshot the output and the three SELECTs in it.'],
+    expect: 'SP0113 with seat 33C and payment 2,150. FZ445 delayed to 22:55. Emirates upcoming fares up 5%. SP0110 deleted with 0 tickets left.' },
+  { id: 'del-queries', where: 'SQL', refs: ['Req 7'], title: 'Q1 to Q30 each run and are captured',
+    steps: ['Run 05_queries.sql with F5, or run each query on its own with Ctrl+Enter to get a clean result grid.', 'Screenshot each result next to its Purpose comment.'],
+    expect: 'All 30 return rows without errors. Together they cover filtering, LIKE, IN, BETWEEN, IS (NOT) NULL, expressions, equi/natural/outer/self joins, a 3+ table join, the aggregates, GROUP BY and HAVING, single- and multi-row subqueries, a correlated subquery, aggregates with subqueries and 4-level nesting.' },
+  { id: 'del-views', where: 'SQL', refs: ['Req 8'], title: 'Both views and their queries are captured',
+    steps: ['Run 06_views.sql and screenshot QV1 to QV4.'],
+    expect: 'Both views are created. QV1 lists the top spenders, QV2 returns no rows (payments match), QV3 lists airlines rated 4 or more, and QV4 lists Air France.' },
+  { id: 'del-report', where: 'SQL', refs: ['Stage 2 report'], title: 'The changes from Stage 1 are documented',
+    steps: ['Open DB-proj-stage1-report.docx and check §4.2 and §5.2–5.3.'],
+    expect: 'ReviewComment (COMMENT is reserved), the date-of-birth trigger, the Self traveler created by the app, the sequence-based key generation note, and the passport and seat checks.' }
+]},
+{ id: 'feel', title: 'Look and feel', intro: 'The animations and the small details that make the GUI feel finished.', tests: [
+  { id: 'ui-anim', where: 'App', refs: ['GUI'], title: 'Every plane animation plays',
+    steps: ['Watch the splash, then click through the sidebar, open Overview, save something, wait for a list to load, and create a booking.'],
+    expect: 'The splash plane crosses the arc. The grey sidebar pill slides with a small plane that banks as it moves. Pages fade and rise in. The Overview plane loops its route with a contrail, the board flaps settle row by row, and the totals count up. Toasts rise from the bottom. A tiny plane circles beside the search box while loading. The boarding pass rises in after a booking.' },
+  { id: 'ui-sort', where: 'App', refs: ['GUI'], title: 'Columns sort correctly',
+    steps: ['Click the Departs header on Flights, then Total on Bookings.'],
+    expect: 'Dates sort by date (not alphabetically) and amounts sort numerically, ascending then descending.' },
+  { id: 'ui-tooltip', where: 'App', refs: ['GUI'], title: 'Cut-off cells show their full text',
+    steps: ['Hover a shortened comment on Reviews.'],
+    expect: 'A tooltip shows the full text.' },
+  { id: 'ui-keyboard', where: 'App', refs: ['Accessibility'], title: 'The app works from the keyboard',
+    steps: ['Tab through a form. Click the sidebar, then use the up and down arrow keys. Press Enter on a dialog\'s main button.'],
+    expect: 'Focus is always visible. The arrows move between pages, with a focus ring around the active item. Enter submits Add companion, and Done closes the boarding pass.' },
+  { id: 'ui-resize', where: 'App', refs: ['GUI'], title: 'The layout holds when the window is resized',
+    steps: ['Resize the window from its smallest size to full screen.'],
+    expect: 'Nothing overlaps or scrolls sideways. The tables get wider as the window grows and the form stays readable.' }
+]},
+{ id: 'reset', title: 'After testing', intro: 'Your tests added and changed rows. Put the demo data back before you take screenshots or present.', tests: [
+  { id: 'reset-data', where: 'SQL', refs: ['Stage 3 demo'], title: 'Reset the demo data',
+    steps: ['Run run_all.sql again (F5). 01 drops everything first, so this rebuilds the schema and data from scratch.', 'Repeat the "Row counts" test at the top.'],
+    expect: 'The same counts as the first time: 13 customers, 12 bookings, 26 tickets and 10 reviews.' }
+]}
+];
+
+// ---------------------------------------------------------------------------
+// State: results and notes live in the page itself (artifact capability).
+// ---------------------------------------------------------------------------
+const embedded = (function () { try { return JSON.parse(document.getElementById('qa-state').textContent); } catch (e) { return { r: {}, n: {} }; } })();
+let state = { r: Object.assign({}, embedded.r), n: Object.assign({}, embedded.n) };
+let ui = { where: 'all', show: 'all', q: '', open: [], scroll: 0 };
+let artifactApi = null;
+let canPublish = null;     // null = not known yet
+let pending = false;
+let timer = null;
+
+function readLocal() { try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || 'null'); } catch (e) { return null; } }
+function writeLocal(s) { try { localStorage.setItem(LOCAL_KEY, JSON.stringify(s)); } catch (e) { /* storage blocked */ } }
+function clearLocal() { try { localStorage.removeItem(LOCAL_KEY); } catch (e) { /* storage blocked */ } }
+
+// Unsaved work from an earlier visit in this browser wins over the published copy.
+const local = readLocal();
+if (local && local.r) { state = { r: Object.assign({}, state.r, local.r), n: Object.assign({}, state.n, local.n) }; pending = true; }
+try { const saved = JSON.parse(sessionStorage.getItem(UI_KEY) || 'null'); if (saved) ui = Object.assign(ui, saved); sessionStorage.removeItem(UI_KEY); } catch (e) { /* storage blocked */ }
+
+const ALL = GROUPS.flatMap(g => g.tests);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+function pageSource() {
+  const style = document.getElementById('qa-style').textContent;
+  const js = document.getElementById('qa-js').textContent;
+  const json = JSON.stringify(state).replace(/</g, '\\u003c');
+  return '<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>' + RESET + '</style></head><body>'
+    + '<title>SkyPass QA Checklist</title>\n<meta name="claude:viewport-fit-sides" content="cover">\n'
+    + '<link rel="stylesheet" href="' + FONTS + '">\n'
+    + '<style id="qa-style">' + style + '</style>\n<div id="app"></div>\n'
+    + '<script type="application/json" id="qa-state">' + json + '<\/script>\n'
+    + '<script id="qa-js">' + js + '<\/script>\n</body></html>';
+}
+
+function saveUi() {
+  ui.scroll = window.scrollY;
+  ui.open = Array.from(document.querySelectorAll('details[open]')).map(d => d.dataset.id);
+  try { sessionStorage.setItem(UI_KEY, JSON.stringify(ui)); } catch (e) { /* storage blocked */ }
+}
+
+function setSave(kind, text) {
+  const el = document.getElementById('save');
+  if (!el) return;
+  el.dataset.state = kind;
+  el.querySelector('.save-text').textContent = text;
+}
+
+function scheduleSave() {
+  pending = true;
+  writeLocal(state);
+  setSave('pending', 'Unsaved changes');
+  clearTimeout(timer);
+  timer = setTimeout(publishNow, 2500);
+}
+
+async function publishNow() {
+  if (!pending) return;
+  const active = document.activeElement;
+  if (active && active.matches && active.matches('.note input')) { timer = setTimeout(publishNow, 1500); return; }
+  if (!artifactApi || canPublish === false) { setSave('local', 'Saved in this browser only'); return; }
+  setSave('saving', 'Saving…');
+  saveUi();
+  try {
+    await artifactApi.publish(pageSource());
+    clearLocal();   // the page itself now holds the results; this view reloads to it
+  } catch (err) {
+    const code = err && err.code;
+    if (code === 'conflict') return;   // the view reloads to the newer version
+    if (code === 'rate_limited') { timer = setTimeout(publishNow, 8000); setSave('pending', 'Saving shortly…'); return; }
+    canPublish = false;
+    setSave('local', code === 'not_writer' || code === 'not_granted' ? 'Read-only here: saved in this browser only' : 'Couldn\'t save to the page: kept in this browser');
+  }
+}
+
+function counts(tests) {
+  let pass = 0, fail = 0;
+  tests.forEach(t => { if (state.r[t.id] === 'pass') pass++; else if (state.r[t.id] === 'fail') fail++; });
+  return { pass, fail, total: tests.length };
+}
+
+function visible(t) {
+  if (ui.where === 'App' && t.where === 'SQL') return false;
+  if (ui.where === 'SQL' && t.where === 'App') return false;
+  if (ui.show === 'todo' && state.r[t.id]) return false;
+  if (ui.show === 'fail' && state.r[t.id] !== 'fail') return false;
+  if (ui.q) {
+    const hay = (t.title + ' ' + t.refs.join(' ') + ' ' + (t.expect || '') + ' ' + (t.steps || []).join(' ') + ' ' + (t.sql || '')).toLowerCase();
+    if (!hay.includes(ui.q.toLowerCase())) return false;
+  }
+  return true;
+}
+
+function testHtml(t) {
+  const r = state.r[t.id] || '';
+  const open = ui.open.includes(t.id) ? ' open' : '';
+  const whereLabel = t.where === 'SQL' ? 'SQL Developer' : t.where === 'Both' ? 'App + SQL' : 'App';
+  const steps = t.steps ? '<ol>' + t.steps.map(s => '<li>' + s + '</li>').join('') + '</ol>' : '';
+  const sql = t.sql ? '<div class="code"><pre>' + esc(t.sql) + '</pre><button type="button" class="copy" data-copy="' + t.id + '">Copy</button></div>' : '';
+  const note = r === 'fail'
+    ? '<div class="note"><label for="note-' + t.id + '">What went wrong?</label><input id="note-' + t.id + '" data-note="' + t.id + '" value="' + esc(state.n[t.id] || '') + '" placeholder="e.g. the message said … instead"></div>'
+    : '';
+  return '<article class="test" data-result="' + r + '">'
+    + '<div class="row"><div class="verdict" role="group" aria-label="Result for ' + esc(t.title) + '">'
+    + '<button type="button" class="b-pass" data-set="' + t.id + '" data-val="pass" aria-pressed="' + (r === 'pass') + '">Pass</button>'
+    + '<button type="button" class="b-fail" data-set="' + t.id + '" data-val="fail" aria-pressed="' + (r === 'fail') + '">Fail</button></div>'
+    + '<details data-id="' + t.id + '"' + open + '><summary><span class="title">' + esc(t.title) + '</span><span class="tags">'
+    + '<span class="tag' + (t.where !== 'App' ? ' where-sql' : '') + '">' + whereLabel + '</span>'
+    + t.refs.map(x => '<span class="tag ref">' + esc(x) + '</span>').join('') + '</span></summary>'
+    + '<div class="body">' + steps + sql + '<div class="expect"><b>Expected:</b> ' + esc(t.expect) + '</div></div></details></div>'
+    + note + '</article>';
+}
+
+function render() {
+  const c = counts(ALL);
+  const done = c.pass + c.fail;
+  const seg = (name, val, label) => '<button type="button" data-ui="' + name + '" data-uval="' + val + '" aria-pressed="' + (ui[name] === val) + '">' + label + '</button>';
+  let body = '';
+  GROUPS.forEach(g => {
+    const shown = g.tests.filter(visible);
+    if (!shown.length) return;
+    const gc = counts(g.tests);
+    body += '<section class="group" aria-labelledby="h-' + g.id + '"><div class="group-head"><h2 id="h-' + g.id + '">' + esc(g.title) + '</h2>'
+      + '<span class="group-count">' + gc.pass + ' of ' + gc.total + ' passed' + (gc.fail ? ' · ' + gc.fail + ' failed' : '') + '</span></div>'
+      + '<p class="group-intro">' + esc(g.intro) + '</p>' + shown.map(testHtml).join('') + '</section>';
+  });
+  if (!body) body = '<p class="empty">No tests match these filters.</p>';
+
+  document.getElementById('app').innerHTML =
+    '<header class="top wrap"><h1>SkyPass QA Checklist</h1>'
+    + '<p class="lede">Manual tests for Stage 2. They cover every business rule (BR1–BR13), entity, relationship, key and constraint in the Stage 1 report, plus the GUI the brief asks for.</p>'
+    + '<div class="how"><span><b>App</b> tests run in the SkyPass GUI from NetBeans. <b>SQL Developer</b> tests are blocks you paste and run with F5. Each one ends in ROLLBACK, so your data never changes.</span>'
+    + '<span>Open a test for its steps and the expected result, then mark it Pass or Fail. Results save to this page, so you can stop and come back.</span></div></header>'
+    + '<div class="bar"><div class="wrap"><div class="progress-line"><span class="progress-figure">' + c.pass + ' of ' + c.total + ' passed</span>'
+    + '<span class="progress-detail">' + (c.fail ? c.fail + ' failed · ' : '') + (c.total - done) + ' not run</span>'
+    + '<span class="save" id="save" data-state="saved" aria-live="polite"><span class="dot"></span><span class="save-text">' + (pending ? 'Unsaved changes' : 'All results saved') + '</span></span></div>'
+    + '<div class="meter" aria-hidden="true"><span class="m-pass" style="width:' + (c.pass / c.total * 100) + '%"></span><span class="m-fail" style="width:' + (c.fail / c.total * 100) + '%"></span></div>'
+    + '<div class="filters"><span class="seg" role="group" aria-label="Where">' + seg('where', 'all', 'All') + seg('where', 'App', 'App') + seg('where', 'SQL', 'SQL Developer') + '</span>'
+    + '<span class="seg" role="group" aria-label="Show">' + seg('show', 'all', 'Every test') + seg('show', 'todo', 'Not run') + seg('show', 'fail', 'Failed') + '</span>'
+    + '<input class="find" id="find" type="search" placeholder="Find a test, e.g. BR5 or seat" value="' + esc(ui.q) + '" aria-label="Find a test"></div></div></div>'
+    + '<main class="wrap">' + body + '</main>'
+    + '<footer class="end wrap"><span>' + c.total + ' tests in ' + GROUPS.length + ' groups.</span>'
+    + '<button type="button" class="danger" id="reset">Clear all results</button></footer>';
+  if (pending) setSave(canPublish === false ? 'local' : 'pending', canPublish === false ? 'Saved in this browser only' : 'Unsaved changes');
+}
+
+function keepOpenState() { ui.open = Array.from(document.querySelectorAll('details[open]')).map(d => d.dataset.id); }
+
+document.addEventListener('click', e => {
+  const set = e.target.closest('[data-set]');
+  if (set) {
+    keepOpenState();
+    const id = set.dataset.set, val = set.dataset.val;
+    if (state.r[id] === val) delete state.r[id]; else state.r[id] = val;
+    if (state.r[id] !== 'fail') delete state.n[id];
+    const y = window.scrollY;
+    render(); window.scrollTo(0, y);
+    if (val === 'fail' && state.r[id] === 'fail') { const n = document.getElementById('note-' + id); if (n) n.focus({ preventScroll: true }); }
+    scheduleSave();
+    return;
+  }
+  const seg = e.target.closest('[data-ui]');
+  if (seg) { keepOpenState(); ui[seg.dataset.ui] = seg.dataset.uval; render(); return; }
+  const copy = e.target.closest('[data-copy]');
+  if (copy) {
+    const t = ALL.find(x => x.id === copy.dataset.copy);
+    const pre = copy.parentElement.querySelector('pre');
+    const done = () => { copy.textContent = 'Copied'; setTimeout(() => { copy.textContent = 'Copy'; }, 1500); };
+    const fallback = () => { const range = document.createRange(); range.selectNodeContents(pre); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range); copy.textContent = 'Selected: press ⌘C'; };
+    try { navigator.clipboard.writeText(t.sql).then(done, fallback); } catch (err) { fallback(); }
+    return;
+  }
+  if (e.target.id === 'reset') {
+    if (e.target.dataset.confirm !== '1') { e.target.dataset.confirm = '1'; e.target.textContent = 'Click again to clear every result'; return; }
+    state = { r: {}, n: {} }; keepOpenState(); render(); scheduleSave();
+  }
+});
+
+document.addEventListener('input', e => {
+  if (e.target.id === 'find') {
+    keepOpenState(); ui.q = e.target.value; render();
+    const f = document.getElementById('find'); f.focus(); f.setSelectionRange(f.value.length, f.value.length);
+  }
+  if (e.target.dataset.note) { state.n[e.target.dataset.note] = e.target.value; scheduleSave(); }
+});
+
+function start() {
+  render();
+  if (ui.scroll) requestAnimationFrame(() => window.scrollTo(0, ui.scroll));
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('artifact').then(api => {
+      artifactApi = api;
+      canPublish = api ? null : false;
+      if (pending) scheduleSave();
+    }, () => { canPublish = false; if (pending) setSave('local', 'Saved in this browser only'); });
+  } else {
+    canPublish = false;
+    if (pending) setSave('local', 'Saved in this browser only');
+  }
+}
+
+const hot = window.claude && window.claude.hot;
+if (hot && typeof hot.snapshot === 'function') hot.snapshot(() => { keepOpenState(); ui.scroll = window.scrollY; return ui; });
+if (hot && typeof hot.ready === 'function') hot.ready(data => { if (data && typeof data === 'object') ui = Object.assign(ui, data); start(); });
+else { const d = hot && hot.data; if (d && typeof d === 'object') ui = Object.assign(ui, d); start(); }
+})();
+</script>
