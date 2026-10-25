@@ -14,3 +14,6 @@ nbproject/private/
 # Local backups and course handouts (not our work)
 docs/backup/
 Project Description.pdf
+
+# design-skill working files
+.taste-skill/

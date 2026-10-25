@@ -11,7 +11,7 @@ Team: Ahmed Sherif, Chihab Ben Khadra, Tarik Mamluk.
 | `DB-proj-ER.drawio`, `DB-proj-ER.png`, `SkyPass ER Diagram Draft.pdf` | ER diagram source and exports |
 | `sky-pass code/sql/` | Oracle scripts 01–06: schema, triggers, sample data, DML demo, queries, views (`run_all.sql` runs them all) |
 | `sky-pass code/SkyPass/` | Java Swing GUI (Maven project, opens in Apache NetBeans) |
-| `docs/` | Stage 2 design spec, implementation plan and the manual QA checklist |
+| `docs/` | Stage 2 design spec, implementation plan, the manual QA checklist (`docs/qa/skypass-qa-checklist.html`) and the app QA checklist (`docs/qa/skypass-app-qa-checklist.html`) |
 
 ## Running it
 
