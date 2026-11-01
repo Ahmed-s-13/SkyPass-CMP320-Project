@@ -48,7 +48,7 @@ public class CustomersPage extends JPanel implements Page {
     private final JTextField first = Ui.field("Omar");
     private final JTextField last = Ui.field("Haddad");
     private final JTextField email = Ui.field("name@example.com");
-    private final JTextField dob = Ui.field("yyyy-mm-dd");
+    private final JTextField dob = Ui.field("e.g. 27/04/2001");
     private final JTextField passport = Ui.field("N4821937");
     private final JTextField street = Ui.field("Al Wasl Road, Villa 12");
     private final JTextField city = Ui.field("Dubai");
@@ -73,7 +73,7 @@ public class CustomersPage extends JPanel implements Page {
         table.onSelect(this::edit);
 
         buildForm();
-        page.add(Ui.workspace(table, form), BorderLayout.CENTER);
+        page.add(Ui.workspace(table, form, 380), BorderLayout.CENTER);
         add(page);
         startNew();
     }
@@ -90,7 +90,8 @@ public class CustomersPage extends JPanel implements Page {
         travelers.setEmptyText("Save the customer first.");
         travelers.setPreferredSize(new Dimension(300, 150));
         travelers.setMinimumSize(new Dimension(100, 150));
-        travelers.widths(130, 80, 90);
+        travelers.widths(130, 92, 100);
+        travelers.minWidth(2, 98);
         JPanel actions = Ui.row(Theme.S2,
                 Ui.secondary("Add companion", e -> addCompanion()),
                 Ui.danger("Remove", e -> removeCompanion()));
@@ -176,7 +177,7 @@ public class CustomersPage extends JPanel implements Page {
         if (ln.isEmpty()) form.error(last, "Enter a last name.");
         else if (ln.length() > 40) form.error(last, "Keep it under 40 characters.");
         if (!Validation.EMAIL.matcher(em).matches()) form.error(email, "Enter an email like name@example.com.");
-        if (birth == null) form.error(dob, "Like 2001-04-27.");
+        if (birth == null) form.error(dob, "Like 27/04/2001.");
         else if (birth.isAfter(LocalDate.now())) form.error(dob, "Can't be in the future.");
         else if (birth.isBefore(LocalDate.of(1900, 1, 1))) form.error(dob, "Check the year.");
         if (!Validation.PASSPORT.matcher(pp).matches()) form.error(passport, "6–15 letters or digits.");
@@ -275,7 +276,7 @@ public class CustomersPage extends JPanel implements Page {
             FormCard f = new FormCard("Add a companion");
             f.setHeading("Add a companion", "Saved to " + customer.name() + "'s account.");
             JTextField name = Ui.field("Full name");
-            JTextField born = Ui.field("yyyy-mm-dd");
+            JTextField born = Ui.field("e.g. 01/12/2015");
             JComboBox<String> rel = Ui.combo();
             for (String r : RELATIONSHIPS) {
                 rel.addItem(r);
@@ -291,13 +292,17 @@ public class CustomersPage extends JPanel implements Page {
                 String p = pass.getText().trim().toUpperCase();
                 if (name.getText().isBlank()) f.error(name, "Enter their full name.");
                 else if (name.getText().trim().length() > 80) f.error(name, "Keep it under 80 characters.");
-                if (d == null) f.error(born, "Like 2015-12-01.");
+                if (d == null) f.error(born, "Like 01/12/2015.");
                 else if (d.isAfter(LocalDate.now())) f.error(born, "Can't be in the future.");
                 if (!Validation.PASSPORT.matcher(p).matches()) f.error(pass, "6–15 letters or digits.");
+                String relationship = (String) rel.getSelectedItem();
+                if ("Spouse".equals(relationship)
+                        && travelers.items().stream().anyMatch(t -> "Spouse".equals(t.relationship()))) {
+                    f.error(rel, "Already has a spouse.");
+                }
                 if (!f.ok()) {
                     return;
                 }
-                String relationship = (String) rel.getSelectedItem();
                 Async.run(CustomersPage.this, () -> {
                     CustomerDao.addTraveler(customer.id(), name.getText().trim(), d, relationship, p);
                     return null;

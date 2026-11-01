@@ -193,9 +193,14 @@ public final class Ui {
 
     /** The CRUD layout: the list on the left, a 340px form on the right. */
     public static JPanel workspace(JComponent main, JComponent side) {
+        return workspace(main, side, 340);
+    }
+
+    /** The CRUD layout with a form of the given width. */
+    public static JPanel workspace(JComponent main, JComponent side, int sideWidth) {
         JPanel body = new JPanel(new BorderLayout(Theme.S5, 0));
         body.setOpaque(false);
-        side.setPreferredSize(new Dimension(340, 10));
+        side.setPreferredSize(new Dimension(sideWidth, 10));
         body.add(main, BorderLayout.CENTER);
         body.add(side, BorderLayout.EAST);
         return body;

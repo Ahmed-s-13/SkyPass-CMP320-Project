@@ -3,9 +3,13 @@ package skypass.ui;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 /** Input checks done in Java before anything is sent to Oracle. */
@@ -17,16 +21,31 @@ public final class Validation {
     public static final Pattern FLIGHT_NO = Pattern.compile("^[A-Z0-9]{2}[0-9]{1,4}[A-Z]?$");
     public static final Pattern SEAT = Pattern.compile("^[1-9][0-9]?[A-K]$");
 
+    /** Ways of typing a date. Numeric forms are read day first, as in the UAE. */
+    private static final DateTimeFormatter[] DATE_FORMATS = {
+        Ui.INPUT_DATE, dateFormat("uuuu/M/d"), dateFormat("d/M/uuuu"), dateFormat("d-M-uuuu"),
+        dateFormat("d.M.uuuu"), dateFormat("d MMM uuuu"), dateFormat("d MMMM uuuu")
+    };
+
     private Validation() {
     }
 
-    /** Parses yyyy-MM-dd, or returns null if the text is not a real date. */
+    private static DateTimeFormatter dateFormat(String pattern) {
+        return new DateTimeFormatterBuilder().parseCaseInsensitive().appendPattern(pattern)
+                .toFormatter(Locale.ENGLISH).withResolverStyle(ResolverStyle.STRICT);
+    }
+
+    /** Parses a date in any of the common formats, or returns null if it is not a real date. */
     public static LocalDate date(String text) {
-        try {
-            return LocalDate.parse(text.trim(), Ui.INPUT_DATE);
-        } catch (DateTimeParseException e) {
-            return null;
+        String trimmed = text.trim();
+        for (DateTimeFormatter format : DATE_FORMATS) {
+            try {
+                return LocalDate.parse(trimmed, format);
+            } catch (DateTimeParseException e) {
+                // not this format: try the next one
+            }
         }
+        return null;
     }
 
     /** Parses yyyy-MM-dd HH:mm, or returns null. */

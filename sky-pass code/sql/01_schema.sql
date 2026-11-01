@@ -81,6 +81,11 @@ CREATE TABLE TRAVELER (
         ('Self', 'Spouse', 'Child', 'Parent', 'Sibling', 'Friend', 'Other'))
 );
 
+-- A customer can save at most one spouse. The CASE gives NULL for every other
+-- relationship and Oracle does not index all-NULL keys, so only Spouse rows compete.
+CREATE UNIQUE INDEX UX_TRAVELER_ONE_SPOUSE
+    ON TRAVELER (CASE WHEN Relationship = 'Spouse' THEN CustomerID END);
+
 -- ---------------------------------------------------------------------
 -- 3. AIRLINE, AIRPORT and the M:N relationship SERVES.
 -- ---------------------------------------------------------------------

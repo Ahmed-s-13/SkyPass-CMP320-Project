@@ -100,6 +100,14 @@ public final class Theme {
         UIManager.put("CheckBox.icon.selectedBackground", ACCENT);
         UIManager.put("CheckBox.icon.selectedBorderColor", ACCENT);
         UIManager.put("CheckBox.icon.checkmarkColor", Color.WHITE);
+        // A ticked box stays orange in every state. FlatLaf's focus, hover and pressed defaults are
+        // near-white, which hides the white tick right after a click.
+        UIManager.put("CheckBox.icon.focusedSelectedBackground", ACCENT);
+        UIManager.put("CheckBox.icon.hoverSelectedBackground", new Color(0xB23A0B));
+        UIManager.put("CheckBox.icon.pressedSelectedBackground", new Color(0x9C3309));
+        UIManager.put("CheckBox.icon.focusedCheckmarkColor", Color.WHITE);
+        UIManager.put("CheckBox.icon.hoverCheckmarkColor", Color.WHITE);
+        UIManager.put("CheckBox.icon.pressedCheckmarkColor", Color.WHITE);
         UIManager.put("ToolTip.background", INK);
         UIManager.put("ToolTip.foreground", Color.WHITE);
     }

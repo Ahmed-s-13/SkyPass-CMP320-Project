@@ -11,6 +11,7 @@ public final class OracleErrors {
             "UQ_CUSTOMER_EMAIL", "That email is already registered to another customer.",
             "PK_CUSTOMER_PHONE", "The same phone number is listed twice.",
             "UQ_TRAVELER_PASSPORT", "This customer already has a traveler with that passport number.",
+            "UX_TRAVELER_ONE_SPOUSE", "This customer already has a spouse saved on their account.",
             "UQ_FLIGHT_NO_DEP", "A flight with this number already departs at that time.",
             "UQ_TICKET_SEAT", "That seat is already taken on this flight. Pick another seat.",
             "UQ_TICKET_TRAVELER", "That traveler already has a ticket on this flight.",

@@ -161,7 +161,7 @@ public class BookingsPage extends JPanel implements Page {
         newForm.pair("Cabin", cabin, "Seat", seat);
         JPanel addRow = new JPanel(new BorderLayout());
         addRow.setOpaque(false);
-        addRow.add(fareNote, BorderLayout.WEST);
+        addRow.add(fareNote, BorderLayout.CENTER);   // CENTER: it shrinks beside the button, never under it
         addRow.add(Ui.secondary("Add ticket", e -> addTicket()), BorderLayout.EAST);
         newForm.extra(addRow);
 
@@ -334,7 +334,7 @@ public class BookingsPage extends JPanel implements Page {
         BookableFlight f = (BookableFlight) flight.getSelectedItem();
         String c = (String) cabin.getSelectedItem();
         fareNote.setText(f == null || c == null ? " "
-                : "Fare AED " + Ui.money(BookingDao.fare(f.baseFare(), c)) + "  (" + Ui.nice(c).toLowerCase() + ")");
+                : "Fare AED " + Ui.money(BookingDao.fare(f.baseFare(), c)));
     }
 
     private void addTicket() {
